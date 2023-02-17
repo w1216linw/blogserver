@@ -5,37 +5,18 @@ import {
   Query,
   Mutation,
   Arg,
-  Field,
   Ctx,
-  ObjectType,
   FieldResolver,
   Root,
 } from "type-graphql";
 import argon2 from "argon2";
 import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
-import { UsernamePasswordInput } from "./UsernamePasswordInput";
-import { LoginInput } from "./LoginInput";
+import { UsernamePasswordInput } from "./types/UsernamePasswordInput";
+import { LoginInput } from "./types/LoginInput";
 import { validateRegister } from "../utils/validateRegister";
 import { v4 } from "uuid";
 import { sendEmail } from "../utils/sendEmail";
-
-@ObjectType()
-class FieldError {
-  @Field()
-  field: string;
-
-  @Field()
-  message: string;
-}
-
-@ObjectType()
-class UserResponse {
-  @Field(() => [FieldError], { nullable: true })
-  errors?: FieldError[];
-
-  @Field(() => BUser, { nullable: true })
-  user?: BUser;
-}
+import { UserResponse } from "./types";
 
 @Resolver(BUser)
 export class UserResolver {

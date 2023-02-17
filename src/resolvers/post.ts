@@ -5,36 +5,17 @@ import {
   Ctx,
   Arg,
   Mutation,
-  InputType,
-  Field,
   UseMiddleware,
   Int,
   FieldResolver,
-  Root,
-  ObjectType,
+  Root
 } from "type-graphql";
 import { MyContext } from "../types";
 import { isAuth } from "../middleware/isAuth";
 import { Updoot } from "../entities/Updoot";
 import { BUser } from "../entities/User";
-
-@InputType()
-class PostInput {
-  @Field()
-  title: string;
-
-  @Field()
-  text: string;
-}
-
-@ObjectType()
-class PaginatedPosts {
-  @Field(() => [Post])
-  posts: Post[];
-
-  @Field()
-  hasMore: boolean;
-}
+import { validatePost } from "../utils/validatePost";
+import { PaginatedPosts, PostInput, PostResponse } from "./types";
 
 @Resolver(Post)
 export class PostResolver {
@@ -152,13 +133,21 @@ export class PostResolver {
     return Post.findOne({ where: { id }, relations: ["creator"] });
   }
 
-  @Mutation(() => Post)
+  @Mutation(() => PostResponse)
   @UseMiddleware(isAuth)
   async createPost(
     @Arg("input") input: PostInput,
     @Ctx() { req }: MyContext
-  ): Promise<Post | null> {
-    return Post.create({ ...input, creatorId: req.session.userId }).save();
+  ): Promise<PostResponse> {
+
+    const errors = validatePost(input)
+    if (errors) {
+      return {errors};
+    }
+
+    return {
+     post: ( await Post.create({ ...input, creatorId: req.session.userId }).save())
+    };
   }
 
   @Mutation(() => Post, { nullable: true })
