@@ -128,6 +128,40 @@ export class PostResolver {
     };
   }
 
+  @Query(() => PaginatedPosts)
+  @UseMiddleware(isAuth)
+  async myPosts(
+    @Arg("limit", () => Int) limit: number,
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
+    @Ctx() {req, AppDataSource}: MyContext 
+  ): Promise<PaginatedPosts> {
+    
+    const realLimit = Math.min(25, limit);
+    const realLimitPlusOne = realLimit + 1;
+
+    const replacements: any[] = [realLimitPlusOne];
+
+    if (cursor) {
+      replacements.push(new Date(parseInt(cursor)));
+    }
+
+    const posts = await AppDataSource.query(
+      `
+    select p.*
+    from post p
+    where p."creatorId" = ${req.session.userId}
+    ${cursor ? `and p."createdAt" < $2` : ""}
+    order by p."createdAt" DESC
+    limit $1
+    `,
+      replacements
+    );
+    return {
+      posts: posts.slice(0, realLimit),
+      hasMore: posts.length === realLimitPlusOne,
+    };
+  }
+
   @Query(() => Post, { nullable: true })
   post(@Arg("id", () => Int) id: number): Promise<Post | null> {
     return Post.findOne({ where: { id }, relations: ["creator"] });
